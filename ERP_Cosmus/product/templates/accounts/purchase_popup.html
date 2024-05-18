@@ -1,0 +1,512 @@
+{% extends 'misc/navbar_popup.html' %}
+{% load static %}
+{% block body %}
+
+        <div class="">
+          <h5 class="" id="">Item Name: {{item}}</h5> 
+          <h5 class="" id="">shade Name: {{item_shade}}</h5>
+        
+          </div>
+        <div class="">
+            <form method="post" id="childform" onsubmit="submitData()">
+                {% csrf_token %}
+                <table class="table table-striped table-hover" id="newTable">
+                    <thead>
+                        <tr>
+                            <th>Godowns</th>
+                            <th>Quantity</th>
+                            <th>Rate</th>
+                            <th>Amount</th>
+                            <th>Delete</th>
+                        </tr>
+                    </thead>
+                    <tbody class="mainTableList">
+                        <input type="hidden" id="id_unique_id_godown" name="unique_id_godown" value="{{unique_id}}">
+                        <input type="hidden" id="id_primary_key_godown" name="primary_key_godown" value="{{primary_key_godown}}">
+                        <input type="hidden" id="id_shade_id" name="shade_id" value="{{shade_id}}">
+                        <input type="hidden" id="prefix_id" name="prefix_id" value="{{prefix_id}}">
+                        <input type="hidden" id="primary_id" name="primary_id" value=" {{primary_key}}">
+                    
+                       
+                        
+                        {{ formset.management_form }}
+                        
+                    {% for form in formset %}
+                    
+                        <tr>
+                            {{ form.id }}
+                            <input type="hidden" value="" id ="{{form.prefix}}-new_quantity" name="{{form.prefix}}-new_quantity">
+                            <input type="hidden" value="" id ="{{form.prefix}}-old_godown_id" name="{{form.prefix}}-old_godown_id">
+                            
+                            <input type="hidden" id="{{form.prefix}}-unique_id" name="{{form.prefix}}-unique_id" value="{{unique_id}}">
+                            <td>
+                            <select name="{{form.prefix}}-godown_id" id="{{form.prefix}}-godown_id" class="item-select godown-select" required>
+                                {% if form.instance.id %}
+                                <option value="{{form.instance.godown_id.id}}">{{form.instance.godown_id.godown_name_raw}}</option>
+                                {% for godown in godowns %}
+                                <option value="{{godown.id}}">{{godown.godown_name_raw}}</option>
+                                {% endfor %}
+                                {% elif not form.instance.id %}
+                                <option value="" selected disabled></option>
+                                {% for godown in godowns %}
+                                <option value="{{godown.id}}">{{godown.godown_name_raw}}</option>
+                                {% endfor %}
+                                {% endif %}
+                            </select>
+                            </td>
+                            <td><input type="number" name="{{form.prefix}}-quantity" id="{{form.prefix}}-quantity" class="purchase-input godown-quantity" value="{{form.instance.quantity | default_if_none:''}}" required ></td>
+
+                           
+                            <td><input type="number" name="{{form.prefix}}-rate" step="0.01" id="{{form.prefix}}-rate" class="purchase-input godown-rate" value="{{form.instance.rate | default_if_none:'' }}" required >
+                            </td>
+                            <td><input type="number" name="{{form.prefix}}-amount" step="0.01" id="{{form.prefix}}-amount" class="purchase-amount godown-amount" value="{{form.instance.amount | default_if_none:'' }}" readonly>
+                            </td>
+                            <td><span class="delete-btn border-0 bg-transparent" style="cursor: pointer;"><i class="fa-solid fa-trash text-danger px-3 "><input type="checkbox" class="godown_delete px-2" style="display: none;"   name="{{form.prefix}}-DELETE" id="{{form.prefix}}-DELETE" value="" ></i></span></td>
+                                
+                            </tr>
+                            {% endfor %}
+                            <input type="hidden" class="purchase-amount" name="grand_godown_quantity" id ="grand_godown_quantity" value="" maxlength="50" step=".01">
+                                <input type="hidden" class="purchase-amount" name="grand_godown_rate" id ="grand_godown_rate" value="" maxlength="50" step=".01"  >
+                                <input type="hidden" class="purchase-amount" name="grand_godown_amount" id ="grand_godown_amount" value="" maxlength="50" step=".01"  >
+                    </tbody>
+                </table>
+               <button type="button" class="create-btn" id="addModalButton">Add +</button>
+               <input type="submit" class="add_btn submitBtn" id="popupData">
+            </form>
+            
+        </div>
+
+     
+        <script>
+
+
+          
+              var primaryId  = document.getElementById('primary_id').value;
+               var shadeId = document.getElementById('id_shade_id').value;
+               var prefixId = document.getElementById('prefix_id').value;
+               var uniqueId = document.getElementById('id_unique_id_godown').value;
+
+               
+            if(primaryId != "None" && uniqueId == "None"){
+
+                var formDataget = $('#childform').serializeArray(); // Serialize form data
+
+
+              document.getElementById('popupData').addEventListener('click', function() {
+                var formData = $('#childform').serializeArray(); // Serialize form data
+                var prefixs = formData.find(field => field.name === 'prefix_id')?.value;
+
+                console.log("Prefix value:", prefixs);
+                function findFieldByName(formData, fieldName) {
+                    return formData.find(field => field.name === fieldName);
+               }
+
+               
+                var array2 = formData
+                var array1 = formDataget
+
+               var primaryIdDict = {"name": "primary_id" , "value": primaryId};
+               var shadeIdDict = {"name": "shade_id" , "value":shadeId};
+               var prefixIdDict = {"name": "prefix_id" , "value":prefixId};
+
+                function getChangedDicts(array1, array2, extraFields) {
+                    var changedDicts = [];
+                
+                    // Iterate over each object in array1
+                    array1.forEach(function (obj1) {
+                    var obj2 = array2.find(function (item) {
+                        return item.name === obj1.name;
+                    });
+
+                    if (obj2) {
+            if (obj2.value !== obj1.value) {
+                // If values differ, the field is modified
+                changedDicts.push({
+                    name: obj1.name,
+                    change_type: "modified",
+                    original_value: obj1.value,
+                    value: obj2.value,
+                });
+            } else {
+                // If values are the same, the field is unchanged
+                changedDicts.push({
+                    name: obj1.name,
+                    change_type: "unchanged",
+                    //original_value: obj1.value,
+                    value: obj2.value,
+                });
+            }
+        } else {
+            // If obj2 does not exist, the field is removed
+            changedDicts.push({
+                name: obj1.name,
+                change_type: "removed",
+                original_value: obj1.value,
+            });
+        }
+    });
+
+
+                // Check for added fields in array2
+                array2.forEach(function (obj2) {
+                    if (!array1.some((obj1) => obj1.name === obj2.name)) {
+                        // If obj2 does not exist in array1, it is an added field
+                        changedDicts.push({
+                            name: obj2.name,
+                            change_type: "added",
+                            value: obj2.value,
+                        });
+                    }
+                });
+
+                    // Add extra fields if they exist
+                    if (extraFields) {
+                        extraFields.forEach(function(field) {
+                            if (field) {
+                                changedDicts.push(field);
+                            }
+                        });
+                    }
+
+                 return changedDicts;
+                }
+
+
+                //var extraFields = [ primaryIdDict, shadeIdDict , prefixIdDict];
+                // Call the function to get the changed dictionaries
+                var ChildData = getChangedDicts(array1, array2);
+                
+            
+                var dataWithPrefix = {
+                [`popupRow_${prefixId}`]:ChildData,
+                };
+
+                
+           
+
+                window.opener.postMessage(dataWithPrefix, "*"); // Send form data to parent window
+                
+                window.close(); // Close the child window
+            });
+            }
+           
+        </script>
+
+    <script>
+        
+
+        var total_form_Value = document.getElementById('id_shade_godown_items_set-TOTAL_FORMS').value;
+        
+        for (var i = 0; i <= total_form_Value; i++) {
+        var oldquantity = document.getElementById('shade_godown_items_set-'+ i + '-new_quantity');
+        var jsonQty = document.getElementById('shade_godown_items_set-' + i + '-quantity').value;
+        var oldGid = document.getElementById('shade_godown_items_set-'+ i + '-old_godown_id');
+        var newGid = document.getElementById('shade_godown_items_set-'+ i + '-godown_id').value;
+        oldquantity.value = jsonQty;
+
+        oldGid.value = newGid;
+      
+        
+        
+        }
+    
+        // This function send the data to the parent page for some values like all rates and calculate the oldqty and current qty 
+        function jsondata(){
+            var prefixIdValue = document.getElementById('prefix_id').value;
+         
+            var json_data_first_rate = document.getElementById('shade_godown_items_set-0-rate').value
+            var total_forms = document.getElementById('id_shade_godown_items_set-TOTAL_FORMS').value
+            
+            var newRow = {};   
+            
+            for (var i = 0; i < total_forms; i++) {
+                var row = 'row_' + i;
+                var popup_row_id = document.getElementById('id_shade_godown_items_set-' + i + '-id');
+                var gId = document.getElementById('shade_godown_items_set-' + i + '-godown_id').value;
+                var jsonQty = parseFloat(document.getElementById('shade_godown_items_set-' + i + '-quantity').value);
+                var old_qty = parseFloat(document.getElementById('shade_godown_items_set-' + i + '-new_quantity').value);
+                var popup_old_id = document.getElementById('shade_godown_items_set-' + i + '-old_godown_id');
+                var uniqueKey = document.getElementById('shade_godown_items_set-' + i + '-unique_id').value;
+                var deleteValue = document.getElementById('shade_godown_items_set-' + i + '-DELETE').value;
+              
+                
+                if(popup_row_id && popup_old_id != "" && uniqueKey == 'None' && deleteValue != 'true'){
+                    popup_old_id = popup_old_id.value
+                    popup_row_id = popup_row_id.value
+
+
+                    newRow[row] = {gId, jsonQty, popup_row_id ,popup_old_id};
+                    
+                }else if(deleteValue != 'true'){
+                    newRow[row] = {gId, jsonQty};
+                } 
+            }
+
+            var jsonData = {
+                parent_row_prefix_id: prefixIdValue,
+                all_Rate: json_data_first_rate,
+                newRow: newRow,
+              
+            };
+            
+            var jsonString = JSON.stringify(jsonData);
+            
+            window.opener.BackendQuantityjson(jsonString);
+
+        }
+       // This function for form submit then function call and send the data to the parent page with the value
+        function submitData(){
+
+            jsondata()
+
+            var newUniqueId = document.getElementById('shade_godown_items_set-0-unique_id').value;
+            var newTotalQty = document.getElementById('grand_godown_quantity').value;
+            var newTotalRate = document.getElementById('grand_godown_rate').value;
+            var newPrimaryKey = document.getElementById('id_primary_key_godown').value;
+            var prefixValue = document.getElementById('prefix_id').value;
+    
+            var newSessionData = {
+                "newUniqueId": newUniqueId,
+                "newTotalQty": newTotalQty,
+                "newTotalRate": newTotalRate,
+                "prefixValue": prefixValue,
+                "newPrimaryKey": newPrimaryKey
+            }
+            
+            window.opener.updateFormData(newSessionData);
+
+            
+        }
+    </script>
+
+    <script>
+        // create a new row and the calculation the single row and save
+        $(document).ready (function(){
+        
+            //addbutton click then check the rate value is not empty then add a new row
+            // otherwise don't add a new row
+        $('#addModalButton').on('click', function() {
+          
+          //first find the last row rate value is not empty then add a new row 
+          //there any one rate value is empty then don't add a new row
+        var newRate = $('#newTable').find('tbody tr').last().find('input[name^="shade_godown_items_set-"][name$="-rate"]').val();
+       
+        if(newRate != "" && newRate != null){
+        var newFormValue = document.getElementById('id_shade_godown_items_set-TOTAL_FORMS');
+       
+        var formsValue = parseInt(newFormValue.value);
+       
+       
+        
+        var tableClone = $('#newTable').find('tbody tr').last().clone(true);
+
+        tableClone.show();
+        
+            //update the input name and id for the new row
+        const newGodownItem = tableClone.find('select[name^="shade_godown_items_set-"][name$="-godown_id"]');
+        newGodownItem.attr('name', 'shade_godown_items_set-'+formsValue +'-godown_id');
+        newGodownItem.attr('id', 'shade_godown_items_set-' + formsValue + '-godown_id');
+        newGodownItem.val('');
+      
+        const oldGodownItem = tableClone.find('input[name^="shade_godown_items_set-"][name$="-old_godown_id"]');
+        oldGodownItem.attr('name', 'shade_godown_items_set-'+formsValue +'-old_godown_id');
+        oldGodownItem.attr('id', 'shade_godown_items_set-' + formsValue + '-old_godown_id');
+        oldGodownItem.val('');
+
+        const newQuantity = tableClone.find('input[name^="shade_godown_items_set-"][name$="-quantity"]');
+        newQuantity.attr('name', 'shade_godown_items_set-' + formsValue + '-quantity');
+        newQuantity.attr('id', 'shade_godown_items_set-' + formsValue + '-quantity');
+        newQuantity.val(0);
+        
+        const newQuantityValue = tableClone.find('input[name^="shade_godown_items_set-"][name$="-new_quantity"]');
+        newQuantityValue.attr('name', 'shade_godown_items_set-' + formsValue + '-new_quantity');
+        newQuantityValue.attr('id', 'shade_godown_items_set-' + formsValue + '-new_quantity');
+        newQuantityValue.val(0);
+       
+        
+        const newRate = tableClone.find('input[name^="shade_godown_items_set-"][name$="-rate"]');
+        newRate.attr('name', 'shade_godown_items_set-' + formsValue + '-rate');
+        newRate.attr('id', 'shade_godown_items_set-' + formsValue + '-rate');
+
+        const firtRowRate = tableClone.find('input[name^="shade_godown_items_set-"][name$="-rate"]').last().val();
+        newRate.val(firtRowRate);
+        newRate.attr('readonly', true);
+       
+
+        const newAmount = tableClone.find('input[name^="shade_godown_items_set-"][name$="-amount"]');
+        newAmount.attr('name', 'shade_godown_items_set-' + formsValue + '-amount');
+        newAmount.attr('id', 'shade_godown_items_set-' + formsValue + '-amount');
+        newAmount.val(0);
+
+        const newUniqueValue = tableClone.find('input[name^="shade_godown_items_set-"][name$="-unique_id"]');
+        newUniqueValue.attr('name', 'shade_godown_items_set-' + formsValue + '-unique_id');
+        newUniqueValue.attr('id', 'shade_godown_items_set-' + formsValue + '-unique_id');
+        newUniqueValue.val('{{unique_id}}');
+        
+        const ID = tableClone.find('input[name^="shade_godown_items_set-"][name$="-id"]');
+        ID.attr('name', 'shade_godown_items_set-' + formsValue + '-id');
+        ID.attr('id', 'shade_godown_items_set-' + formsValue + '-id');
+        ID.val('');
+
+       const deleteElement = tableClone.find('input[name^="shade_godown_items_set-"][name$="-DELETE"]');
+        deleteElement.attr('name', 'shade_godown_items_set-' + formsValue + '-DELETE');
+        deleteElement.attr('id', 'shade_godown_items_set-' + formsValue + '-DELETE');
+        deleteElement.val('');
+        
+        
+        newFormValue.value = formsValue + 1;
+
+        $('#newTable tbody').append(tableClone);
+       
+        calculateGodownAmount();
+        deleteRowCalculate();
+       
+        }   
+        calculateGodownAmount();
+        deleteRowCalculate();
+    });
+   // This funcion calculate the amount for each row then set the total amount and total quantity
+    function calculateNewRow(row) {
+        var inputQty = row.find('.godown-quantity[name^="shade_godown_items_set-"][name$="-quantity"]').val();
+        var inputQtyValue = parseInt(inputQty);
+        var inputRate = row.find('.godown-rate[name^="shade_godown_items_set-"][name$="-rate"]').val();
+        var inputRateValue = parseInt(inputRate);
+        var totalAmount = row.find('.godown-amount[name^="shade_godown_items_set-"][name$="-amount"]').val();
+    
+        // Calculate and set the amount for this row
+        var amount = inputQtyValue * inputRateValue;
+        
+        totalAmount = isNaN(amount) ? '' : amount.toFixed(2);
+        row.find('.godown-amount[name^="shade_godown_items_set-"][name$="-amount"]').val(totalAmount);
+        
+        return amount;
+       
+    }
+    // calculate the total quantity
+    function calculateQty(row) {
+        var inputQty = row.find('.godown-quantity[name^="shade_godown_items_set-"][name$="-quantity"]').val();
+        var inputQtyValue = parseInt(inputQty);
+        return inputQtyValue;
+      
+    }
+    function calculateRate(row){
+        var inputRate = row.find('.godown-rate[name^="shade_godown_items_set-"][name$="-rate"]').val();
+        var inputRateValue = parseInt(inputRate);
+        return inputRateValue;
+    }
+    // Function to calculate total amount
+    function calculateGodownAmount() {
+        var total = 0;
+        var totalRate = 0;
+        var totalQty = 0;
+        // Iterate over each row in the table body
+        $('#newTable tbody tr').each(function() {
+        var newAmount = calculateNewRow($(this));
+        var newQty = calculateQty($(this));
+        var newRate = calculateRate($(this));
+        totalQty += newQty;
+        totalRate = newRate;
+        total += newAmount;
+        });
+
+       
+        // Update the total amount field
+        $('#grand_godown_amount').val(total);
+        $('#grand_godown_quantity').val(totalQty);
+        $('#grand_godown_rate').val(totalRate);
+    }
+
+
+    function deleteRowCalculate(){
+        var totalAmount = 0; // Total amount across all rows
+        var totalQty = 0; // Total quantity
+        var totalRate = 0; 
+        
+        $('#newTable tbody tr:visible').each(function() {
+            var currentRow = $(this); 
+        
+            var amount = parseFloat( currentRow.find('.godown-amount').val()); // Calculate amount for this row
+            var qty = parseFloat(currentRow.find('.godown-quantity').val()); // Calculate quantity
+            var rate = parseFloat(currentRow.find('.godown-rate').val()); // Calculate rate
+
+            // Accumulate totals
+            totalAmount += amount; // Add amount to total
+            totalQty += qty; // Add quantity to total
+            totalRate = rate; // Set rate (if applicable, otherwise accumulate)
+           });
+
+                // Update the totals in the UI
+                $('#grand_godown_amount').val(totalAmount.toFixed(2));
+                $('#grand_godown_quantity').val(totalQty.toFixed(2));
+                $('#grand_godown_rate').val(totalRate.toFixed(2));
+
+                    
+    }
+    $(document).on('click','#popupData', function(){
+        calculateGodownAmount();
+        deleteRowCalculate();
+    })
+
+  
+    $(document).on('change', '.godown-select', function(){
+        calculateGodownAmount();
+        deleteRowCalculate()
+    })
+
+    $(document).on('input', '.godown-quantity' && ' .godown-rate', function() {
+            //call the calculation function when qunatity and rate is changed   
+            calculateGodownAmount();
+            deleteRowCalculate();
+
+        })
+
+    $(document).on('input', '.godown-quantity' , function() {
+            //call the calculation function when qunatity and rate is changed   
+            calculateGodownAmount();
+            deleteRowCalculate();
+
+    })
+      
+    $(document).on('change', '.godown-select, .godown-quantity, .godown-rate', function() {
+    calculateGodownAmount(); // Recalculate the amount
+    deleteRowCalculate();
+});
+
+    
+        //Delete row from delete button click then ajax request sent to backend foe deletion a row from table
+        $(document).on('click', '.delete-btn', function() {
+            
+        var tableRows = $('#newTable tbody tr'); 
+        if (tableRows.length > 1) { 
+            var row = $(this).closest('tr'); 
+           
+            var checkbox = row.find('.godown_delete[name^="shade_godown_items_set-"][name$="-DELETE"]');
+            
+            checkbox.prop('checked', true); 
+            checkbox.val('true');
+           
+            if(checkbox.val() == 'true'){
+
+            row.hide();
+            deleteRowCalculate();
+            }
+              
+        } else {
+            alert('The table must have at least one godown item'); 
+        }
+     
+        
+        });
+
+     
+
+        })
+    </script>
+
+
+
+
+
+
+
+{% endblock body %}
