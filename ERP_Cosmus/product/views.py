@@ -839,10 +839,6 @@ def item_create_dropdown_refresh_ajax(request):
 
 
 
-
-
-
-
 def color_create_update(request, pk=None):
 
 
@@ -904,12 +900,6 @@ def color_delete(request, pk):
     except IntegrityError as e:
         messages.error(request,f'Cannot delete {product_color.color_name} because it is referenced by other objects.')
     return redirect('simplecolorlist')
-
-
-
-
-
-
 
 
 
@@ -977,11 +967,6 @@ def item_fabric_group_delete(request,pk):
         messages.error(request,f'Cannot delete {item_fabric_pk.fab_grp_name} because it is referenced by other objects.')
     
     return redirect('item-fabgroup-create-list')
-
-
-
-
-
 
 def unit_name_create_update(request,pk=None):
     
@@ -1374,35 +1359,18 @@ def stocktransfer(request):
             item_name =  item.items.item_name
             item_id = item.items.id
             items_in_godown[item_id] = item_name
-
-        
-            
-        
         item_name_value = request.GET.get('item_value')
-
-        
         item_color_godown = request.GET.get('selectedValueGodown')
-
-        
         item_shades_of_selected_item = item_color_shade.objects.filter(items=item_name_value)
 
         item_shades = {}
-        items_shade_quantity_in_godown = {}
-
-        
+        items_shade_quantity_in_godown = {}        
         for x in item_shades_of_selected_item:
-
-            
             shades_of_item_in_selected_godown = item_godown_quantity_through_table.objects.filter(godown_name = item_color_godown, Item_shade_name=x.id)
-
-            
-            
             for x in shades_of_item_in_selected_godown:
                 shade_name = x.Item_shade_name.item_shade_name
                 shade_id = x.Item_shade_name.id
                 item_shades[shade_id] = shade_name
-
-                
                 item_id = x.Item_shade_name.id
                 items_shade_quantity_in_godown[item_id] = x.quantity
 
@@ -1411,14 +1379,9 @@ def stocktransfer(request):
 
         if item_name_value is not None:
             item_name_value = int(item_name_value)
-
-            
             items =  get_object_or_404(Item_Creation ,id = item_name_value)
-        
             item_color = items.Item_Color.color_name
             item_per = items.unit_name_item.unit_name
-
-        
         shade_quantity = 0
         selected_shade = request.GET.get('selected_shade_id')
         selected_godown = request.GET.get('godown_id')
@@ -1426,7 +1389,6 @@ def stocktransfer(request):
         if selected_shade is not None and selected_godown is not None:
             selected_shade = int(selected_shade)
             selected_source_godown_id = int(selected_godown)
-
             quantity_get = item_godown_quantity_through_table.objects.filter(Item_shade_name = selected_shade, godown_name =selected_source_godown_id).first()
             shade_quantity  = quantity_get.quantity
 
@@ -1434,8 +1396,6 @@ def stocktransfer(request):
         if request.META.get('HTTP_X_REQUESTED_WITH') == 'XMLHttpRequest':
             return JsonResponse({'items_in_godown': items_in_godown, 'item_shades':item_shades,
                                 'item_color':item_color,'item_per':item_per, 'shade_quantity':shade_quantity,'items_shade_quantity_in_godown':items_shade_quantity_in_godown })
-        
-
         else:
              return render(request,'misc/stock_transfer.html',{'raw_godowns':raw_godowns,'transferlist':rawstocktransferlist,'current_date':current_date})
 
@@ -1456,23 +1416,13 @@ def stocktransfer(request):
                 target_godown_raw = Godown_raw_material.objects.get(id=target_godown)
                 item_name_transfer_raw = Item_Creation.objects.get(id=item_name_transfer)
                 item_shade_transfer_raw = item_color_shade.objects.get(id=item_shade_transfer)
-
-                
                 source_g = item_godown_quantity_through_table.objects.get(godown_name=source_godown, Item_shade_name=item_shade_transfer)
-
-                
                 destination_g = item_godown_quantity_through_table.objects.get(godown_name=target_godown, Item_shade_name=item_shade_transfer)
-            
                 with transaction.atomic():
-                    
                     source_g.quantity = source_g.quantity - item_quantity_transfer  
                     source_g.save()
-
-                    
                     destination_g.quantity = destination_g.quantity + item_quantity_transfer
                     destination_g.save()
-
-            
                     RawStockTransfer.objects.create(source_godown=source_godown_raw,destination_godown=target_godown_raw,
                                             item_name_transfer=item_name_transfer_raw,item_color_transfer=item_color_transfer,
                                             item_shade_transfer=item_shade_transfer_raw,
@@ -1487,14 +1437,9 @@ def stocktransfer(request):
                 with transaction.atomic():
                     
                     source_g.quantity = source_g.quantity - item_quantity_transfer
-                    source_g.save()
-            
-                    
+                    source_g.save()            
                     target_godown_instance = Godown_raw_material.objects.get(id=target_godown)
-                    item_shade_transfer_instance = item_color_shade.objects.get(id=item_shade_transfer)
-            
-
-                    
+                    item_shade_transfer_instance = item_color_shade.objects.get(id=item_shade_transfer) 
                     new_entry = item_godown_quantity_through_table.objects.create(
                     godown_name=target_godown_instance,
                     Item_shade_name=item_shade_transfer_instance,
@@ -1519,19 +1464,9 @@ def stocktransferreport(request):
 
 
 
-
-
-
-
-
-
-
 def purchasevouchercreateupdate(request, pk=None):
     item_name_searched = Item_Creation.objects.all()
     if request.META.get('HTTP_X_REQUESTED_WITH') != 'XMLHttpRequest':
-
-
-        
         if pk:
             purchase_invoice_instance = get_object_or_404(item_purchase_voucher_master,pk=pk)
             item_formsets_change = purchase_voucher_items_formset_update(request.POST or None, instance=purchase_invoice_instance)
@@ -1590,7 +1525,6 @@ def purchasevouchercreateupdate(request, pk=None):
         
         for shade in item_shades:
             item_shades_dict[shade.id] = shade.item_shade_name
-            
             godown_shade_quantity = 0
             shade_godowns =  item_godown_quantity_through_table.objects.filter(Item_shade_name = shade)
             for godown in shade_godowns:
@@ -1609,26 +1543,13 @@ def purchasevouchercreateupdate(request, pk=None):
         print(request.POST)
         try:
             with transaction.atomic(): 
-                
                 master_form = item_purchase_voucher_master_form(request.POST,instance=purchase_invoice_instance)
-
-                
                 items_formset = item_formsets_change
-
-                
                 godown_items_formset = purchase_voucher_items_godown_formset(request.POST, prefix='shade_godown_items_set')
-
-                
                 items_formset.forms = [form for form in items_formset.forms] 
-
                 print('items_formset.forms',items_formset.deleted_forms)
                 if master_form.is_valid() and items_formset.is_valid():
-                    
                     master_instance = master_form.save()
-
-                    
-                    
-                    
                     for form in items_formset.deleted_forms:
                         if form.instance.pk:
                             
@@ -1639,16 +1560,11 @@ def purchasevouchercreateupdate(request, pk=None):
                     
                     for form in items_formset:
                         if form.is_valid():
-
-                            
                             if not form.cleaned_data.get('DELETE'):
                                 items_instance = form.save(commit=False)
                                 items_instance.item_purchase_master = master_instance
                                 items_instance.save()
-                                
-                                form_prefix_number = form.prefix[-1] 
-                                
-                                
+                                form_prefix_number = form.prefix[-1]                     
                                 unique_id_no = request.POST.get(f'item_unique_id_{form_prefix_number}')
                                 primary_key = request.POST.get(f'purchase_voucher_items_set-{form_prefix_number}-id')
                                 
@@ -1687,8 +1603,6 @@ def purchasevouchercreateupdate(request, pk=None):
                                     if saved_data_to_delete == form_set_id:
                                         purchase_voucher_temp_data.delete()
 
-
-                                
                                 godown_item_quantity = request.POST.get(f'purchase_voucher_items_set-{form_prefix_number}-jsonDataInputquantity')
                                
                                 if godown_item_quantity != '':
@@ -1706,8 +1620,6 @@ def purchasevouchercreateupdate(request, pk=None):
                                         for key, value in new_row.items():
                                             godown_id = int(value['gId'])    
                                             updated_quantity = value['jsonQty']   
-
-                                            
                                             godown_old_id = value.get('popup_old_id', None)   
                                             if godown_old_id == '':
                                                 godown_old_id = None
@@ -1737,8 +1649,7 @@ def purchasevouchercreateupdate(request, pk=None):
                                                 Item.quantity = Item.quantity + qty_to_update
                                                 Item.item_rate = new_rate
                                                 Item.save()
-                                            
-                                            
+
                                             if godown_old_id != None:
                                                 
                                                 godown_old_id = int(godown_old_id) 
@@ -1769,8 +1680,6 @@ def purchasevouchercreateupdate(request, pk=None):
                                                     new_godown_through_row.quantity = new_quantity_c + updated_quantity
                                                     new_godown_through_row.save()
 
-
-                                
                                 popup_godowns_exists = request.POST.get(f'purchase_voucher_items_set-{form_prefix_number}-popupData')
                                 old_item_shade = request.POST.get(f'purchase_voucher_items_set-{form_prefix_number}-old_item_shade')
                                 
@@ -1780,7 +1689,6 @@ def purchasevouchercreateupdate(request, pk=None):
                                     row_prefix_id = popup_godown_data.get('prefix_id')
 
                                     if row_prefix_id == form_prefix_number:
-                                        
                                         shade_id = int(popup_godown_data.get('shade_id'))
                                         prefix_id =  int(popup_godown_data.get('prefix_id'))
                                         primarykey = int(popup_godown_data.get('primary_id'))
@@ -1788,7 +1696,6 @@ def purchasevouchercreateupdate(request, pk=None):
                                         
                                         purchasevoucherpopupupdate(popup_godown_data,shade_id,prefix_id,primarykey,old_item_shade)
                                         
-                                
                         else:
                             print('form1',form.errors)
                             
@@ -1813,9 +1720,6 @@ def purchasevouchercreateupdate(request, pk=None):
             messages.error(request,f'An error occoured{e} godown temporary data deleted')
             
         finally:
-                
-                
-                
                 if 'temp_data_exists' in request.session and 'temp_uuid' in request.session: 
                     temp_data_exists_bool = request.session['temp_data_exists']
                     temp_uuids = request.session['temp_uuid']
@@ -1839,7 +1743,6 @@ def purchasevouchercreateupdate(request, pk=None):
 
 
 def purchasevoucherpopupupdate(popup_godown_data,shade_id,prefix_id,primarykey,old_item_shade):
-        
         if primarykey is not None:
             voucher_item_instance = purchase_voucher_items.objects.get(id=primarykey)
 
@@ -1849,8 +1752,6 @@ def purchasevoucherpopupupdate(popup_godown_data,shade_id,prefix_id,primarykey,o
                     print('all_godown_old_instances',all_godown_old_instances)
                     for items in all_godown_old_instances:
                         items.deleted_directly = True
-
-                        
                         items.extra_data_old_shade = old_item_shade
                         items.delete()
 
@@ -1868,14 +1769,7 @@ def purchasevoucherpopupupdate(popup_godown_data,shade_id,prefix_id,primarykey,o
 
                 
 
-
-
 def purchasevoucherpopup(request,shade_id,prefix_id,unique_id=None,primarykey=None):
-    
-    
-    
-    
-    
     if unique_id is not None:
         
         temp_instances = shade_godown_items_temporary_table.objects.filter(unique_id=unique_id)
@@ -1885,8 +1779,6 @@ def purchasevoucherpopup(request,shade_id,prefix_id,unique_id=None,primarykey=No
 
         else:
             formsets = shade_godown_items_temporary_table_formset(request.POST or None, queryset = temp_instances,prefix='shade_godown_items_set')
-    
-    
     elif primarykey is not None:
 
         godowns_for_selected_shade = shade_godown_items.objects.filter(purchase_voucher_godown_item__item_shade = shade_id,purchase_voucher_godown_item = primarykey)
@@ -1899,7 +1791,6 @@ def purchasevoucherpopup(request,shade_id,prefix_id,unique_id=None,primarykey=No
             instance=voucher_item_instance,
             prefix='shade_godown_items_set',
             queryset=godowns_for_selected_shade)
-
     
     formset = formsets
     try:
@@ -1922,16 +1813,11 @@ def purchasevoucherpopup(request,shade_id,prefix_id,unique_id=None,primarykey=No
                                                                  'errors': formset.errors,'prefix_id':prefix_id, 'primary_key':primarykey}
                     return render(request, 'accounts/purchase_popup.html', context)
                 
-            
-            
             request.session['temp_data_exists'] = True
             temp_uuid = request.session.get('temp_uuid', [])
             temp_uuid.append(unique_id)
             request.session['temp_uuid'] = temp_uuid 
-
             return HttpResponse('<script>window.close();</script>') 
-                    
-
         else:
             context = {
                 'godowns': godowns, 'item': item, 'item_shade': item_shade, 'formset': formset, 
@@ -1968,7 +1854,6 @@ def purchasevouchercreategodownpopupurl(request):
 
 def purchasevoucheritemsearchajax(request):
     try:
-        
         item_name_typed = request.GET.get('nameValue')
         if not item_name_typed:
             raise ValidationError("No partial name provided.")
@@ -2013,30 +1898,11 @@ def purchasevoucherdelete(request,pk):
                     
 
 def session_data_test(request):
-    
-    
-    
-    
-
-
-
-    
     session_data = request.session
-    
-    
-    
     for key, value in session_data.items():
         print(f"Key: {key}, Value: {value}")
-
     context = {}
     return render(request,'misc/session_test.html',context=context)
-
-
-
-
-
-
-
 
 def salesvouchercreate(request):
     return render(request,'.html')
@@ -2054,15 +1920,6 @@ def salesvoucherlist(request):
 
 def salesvoucherdelete(request,pk):
     pass
-
-
-
-
-
-
-
-
-
 
 
 def gst_create_update(request, pk = None):
